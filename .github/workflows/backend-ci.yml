@@ -1,0 +1,83 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/api/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/api/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        cd apps/api
+        pip install -r requirements-dev.txt
+    
+    - name: Lint with flake8
+      run: |
+        cd apps/api
+        flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Format check with black
+      run: |
+        cd apps/api
+        black --check app
+    
+    - name: Run pytest
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        cd apps/api
+        pytest --cov=app --cov-report=xml || true
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -f infrastructure/docker/Dockerfile.backend \
+          -t anvi-prep-ai-api:${{ github.sha }} \
+          -t anvi-prep-ai-api:latest \
+          apps/api

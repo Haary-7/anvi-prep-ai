@@ -1,0 +1,31 @@
+{
+  "name": "anvi-prep-ai",
+  "version": "0.1.0",
+  "description": "AI-powered competitive exam preparation platform",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web & npm run dev --workspace=apps/api",
+    "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/api",
+    "test": "npm run test --workspace=apps/web && npm run test --workspace=apps/api",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/api",
+    "format": "npm run format --workspace=apps/web && npm run format --workspace=apps/api",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "migrate": "cd apps/api && alembic upgrade head",
+    "seed": "cd apps/api && python scripts/seed_data.py"
+  },
+  "keywords": [
+    "competitive-exams",
+    "education",
+    "ai",
+    "ssc-cgl",
+    "learning"
+  ],
+  "author": "Anvi Prep AI Team",
+  "license": "MIT"
+}

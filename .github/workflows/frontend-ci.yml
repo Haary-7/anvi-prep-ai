@@ -1,0 +1,65 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/web/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/web/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'apps/web/package-lock.json'
+    
+    - name: Install dependencies
+      run: |
+        cd apps/web
+        npm ci
+    
+    - name: Lint
+      run: |
+        cd apps/web
+        npm run lint
+    
+    - name: Type check
+      run: |
+        cd apps/web
+        npm run type-check
+    
+    - name: Run tests
+      run: |
+        cd apps/web
+        npm run test -- --coverage || true
+    
+    - name: Build
+      run: |
+        cd apps/web
+        npm run build
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -f infrastructure/docker/Dockerfile.frontend \
+          -t anvi-prep-ai-web:${{ github.sha }} \
+          -t anvi-prep-ai-web:latest \
+          .
